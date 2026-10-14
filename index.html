@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kinoabend">
+<meta name="theme-color" content="#0c0e15">
+<meta name="format-detection" content="telephone=no">
+<title>Kinoabend</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&display=swap">
+<style>
+/* Layout: native iOS tab app — full-bleed screens, glass bars, Dynamic-Island-Toast; Poster werden typografisch generiert */
+:root{
+  color-scheme:dark;
+  --bg:#0c0e15; --bg2:#151824; --card:#1b1f2d; --line:rgba(226,232,255,.09);
+  --text:#f1f2f7; --muted:#9298ab; --gold:#f2b544; --gold-soft:rgba(242,181,68,.16); --ink:#000;
+  --display:"Big Shoulders Display","Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  --tab-h:54px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ui);font-size:15px;
+  -webkit-font-smoothing:antialiased;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:inherit}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:8px}
+
+/* ---------- screens ---------- */
+#app{position:fixed;inset:0;background:var(--bg)}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  padding-bottom:calc(var(--tab-h) + var(--safe-b) + 28px);opacity:0;pointer-events:none;transition:opacity .2s}
+.screen.active{opacity:1;pointer-events:auto}
+
+/* top bars: below status bar + Dynamic Island via safe-area */
+.topbar{position:sticky;top:0;z-index:20;padding:calc(var(--safe-t) + 8px) 16px 10px;display:flex;align-items:center;gap:12px;
+  transition:background .25s,border-color .25s;border-bottom:.5px solid transparent}
+.topbar.solid{background:rgba(12,14,21,.74);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-bottom-color:var(--line)}
+.topbar.stack{flex-direction:column;align-items:stretch;gap:10px}
+.brand{display:flex;align-items:center;gap:8px}
+.brand svg{width:30px;height:30px}
+.brand b{font-family:var(--display);font-weight:900;font-size:26px;letter-spacing:.06em;text-transform:uppercase;line-height:1;color:var(--text)}
+.brand b i{font-style:normal;color:var(--gold)}
+.spacer{flex:1}
+.icon-btn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.icon-btn svg{width:19px;height:19px}
+.large-title{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.1}
+
+/* ---------- generated poster art ---------- */
+.art{position:absolute;inset:0;z-index:0;container-type:inline-size;overflow:hidden;color:#fff;
+  background:
+    radial-gradient(120% 75% at 15% -5%, hsl(var(--h) 72% 52% / .85), transparent 62%),
+    radial-gradient(95% 70% at 105% 105%, hsl(calc(var(--h) + 38) 78% 34% / .95), transparent 70%),
+    linear-gradient(165deg, hsl(var(--h) 42% 19%), hsl(calc(var(--h) + 18) 48% 7%));}
+.art::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);}
+.art::after{content:"";position:absolute;left:-30%;top:-10%;width:60%;height:140%;transform:rotate(18deg);pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent)}
+.art-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.art-h .art-img{object-position:center 25%}
+.art-g{position:absolute;left:8cqi;top:8cqi;font-size:7cqi;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.82;z-index:1}
+.art-t{position:absolute;left:8cqi;right:8cqi;bottom:15cqi;z-index:1;font-family:var(--display);font-weight:900;text-transform:uppercase;
+  line-height:.88;letter-spacing:.01em;font-size:calc(var(--fs) * 1cqi);text-wrap:balance;overflow-wrap:break-word;hyphens:manual;text-shadow:0 2px 14px rgba(0,0,0,.35)}
+.art-m{position:absolute;left:8cqi;right:8cqi;bottom:6cqi;z-index:1;font-size:6.2cqi;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.art-w .art-g{left:5cqi;top:5cqi;font-size:3.6cqi}
+.art-w .art-t{left:5cqi;right:30cqi;bottom:9cqi}
+.art-w .art-m{display:none}
+.art-h .art-g,.art-h .art-m{display:none}
+.art-h .art-t{top:calc(var(--safe-t) + 14cqi);bottom:auto;left:-2cqi;right:-2cqi;font-size:38cqi;line-height:.82;color:transparent;
+  -webkit-text-stroke:1.2px rgba(255,255,255,.16);text-shadow:none;text-align:center}
+
+/* ---------- hero ---------- */
+.hero{position:relative;margin-top:calc(-1 * (var(--safe-t) + 58px));height:max(560px, min(78vh, 640px));overflow:hidden}
+.hero-track{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.hero-track::-webkit-scrollbar{display:none}
+.hero-slide{position:relative;flex:0 0 100%;height:100%;scroll-snap-align:start}
+.hero-slide::after{content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(12,14,21,.45) 0%,rgba(12,14,21,0) 20%,rgba(12,14,21,.1) 42%,rgba(12,14,21,.9) 76%,var(--bg) 100%)}
+.hero-info{position:absolute;left:0;right:0;bottom:44px;z-index:2;padding:0 20px;text-align:center}
+.hero-info h1{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:52px;line-height:.9;letter-spacing:.01em;
+  margin:0 0 10px;text-wrap:balance;text-shadow:0 4px 28px rgba(0,0,0,.5)}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 9px;border-radius:7px;background:var(--gold-soft);color:var(--gold);margin-bottom:12px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.meta{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;color:#d2d5df;font-size:13px;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.meta .dot{opacity:.45}
+.hero-genres{color:var(--muted);font-size:13px;margin-bottom:16px}
+.hero-actions{display:flex;gap:10px;justify-content:center}
+.btn-primary{flex:0 1 240px;height:48px;border-radius:13px;background:#fff;color:#0c0e15;font-weight:700;font-size:16px;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s}
+.btn-primary svg{width:19px;height:19px}
+.btn-sq{width:48px;height:48px;flex:0 0 48px;border-radius:13px;background:rgba(255,255,255,.15);display:grid;place-items:center;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transition:transform .12s}
+.btn-sq svg{width:21px;height:21px}
+.btn-primary:active,.btn-sq:active,.card:active,.wide:active,.result-row:active{transform:scale(.96)}
+.dots{position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:3}
+.dots i{width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,.3);transition:width .3s,background .3s}
+.dots i.on{width:18px;background:var(--gold)}
+
+/* ---------- rails ---------- */
+.section{margin:24px 0 2px}
+.section h2{font-size:20px;font-weight:700;margin:0 16px 10px;letter-spacing:-.01em;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.section h2 small{font-size:15px;font-weight:500;color:var(--gold)}
+.rail{display:flex;gap:10px;overflow-x:auto;padding:2px 16px 6px;scroll-snap-type:x proximity;scroll-padding:0 16px;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.card{flex:0 0 auto;width:114px;scroll-snap-align:start;transition:transform .12s}
+.card.big{width:142px}
+.poster{position:relative;width:100%;max-width:100%;aspect-ratio:2/3;border-radius:10px;overflow:hidden;background:var(--card);
+  box-shadow:0 0 0 .5px rgba(255,255,255,.08) inset}
+.card .t{font-size:12.5px;color:#cfd2dc;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank{position:absolute;right:6px;bottom:-4px;z-index:2;font-family:var(--display);font-size:64px;font-weight:900;line-height:1;
+  color:transparent;-webkit-text-stroke:2px var(--gold);text-shadow:0 4px 16px rgba(0,0,0,.5)}
+.card.ranked .art-t{right:30cqi}
+.wide{flex:0 0 auto;width:252px;scroll-snap-align:start;transition:transform .12s}
+.wide .thumb{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:11px;overflow:hidden;background:var(--card)}
+.wide .play{position:absolute;right:10px;bottom:12px;z-index:2;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);
+  display:grid;place-items:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.wide .play svg{width:16px;height:16px;margin-left:2px}
+.progress{position:absolute;left:0;right:0;bottom:0;z-index:2;height:3px;background:rgba(255,255,255,.22)}
+.progress b{display:block;height:100%;background:var(--gold)}
+.wide .t{font-size:14px;font-weight:600;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wide .s{font-size:12px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+
+/* chips + grid */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:8px 14px;border-radius:999px;background:var(--bg2);border:.5px solid var(--line);font-size:14px;color:#d6d9e2}
+.chip.on{background:var(--gold);border-color:var(--gold);color:#1a1205;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px;padding:12px 16px}
+@media (min-width:600px){.grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.grid .card{width:auto}
+
+/* search */
+.searchbox{display:flex;align-items:center;gap:8px;background:var(--bg2);border-radius:12px;padding:0 12px;height:40px}
+.searchbox svg{width:18px;height:18px;color:var(--muted);flex:0 0 auto}
+.searchbox input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font-size:17px;font-family:var(--ui);-webkit-user-select:text;user-select:text}
+.searchbox input::placeholder{color:var(--muted)}
+.count{padding:14px 16px 4px;color:var(--muted);font-size:13px}
+.result-row{display:flex;gap:12px;padding:8px 16px;align-items:center;width:100%;transition:transform .12s}
+.result-row .poster{width:62px;flex:0 0 62px;border-radius:8px}
+.result-row .info{flex:1;min-width:0}
+.result-row .info b{display:block;font-size:15px;margin-bottom:3px}
+.result-row .info span{font-size:13px;color:var(--muted)}
+.tags{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.tag{font-size:11px;padding:3px 7px;border-radius:6px;background:var(--bg2);color:#c7cad4}
+.empty{text-align:center;color:var(--muted);padding:56px 30px}
+.empty svg{width:44px;height:44px;opacity:.5;margin-bottom:10px}
+.empty h3{color:var(--text);margin:0 0 6px}
+
+/* my space */
+.hello{margin:14px 16px;padding:16px;border-radius:16px;background:var(--bg2);border:.5px solid var(--line);position:relative;overflow:hidden}
+.hello::before{content:"";position:absolute;right:-30px;top:-40px;width:160px;height:160px;border-radius:50%;
+  background:radial-gradient(circle,rgba(242,181,68,.28),transparent 70%)}
+.hello b{font-size:18px;display:block;margin-bottom:4px;position:relative}
+.hello span{font-size:14px;color:#c4c7d1;position:relative;display:block;max-width:34ch}
+.hello .sub{display:inline-block;margin-top:12px;padding:9px 16px;border-radius:10px;background:var(--gold);color:#1a1205;font-weight:700;font-size:14px;position:relative}
+.profiles{display:flex;gap:16px;overflow-x:auto;padding:4px 16px 8px;scrollbar-width:none}
+.profiles::-webkit-scrollbar{display:none}
+.prof{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:8px;width:68px}
+.prof .av{position:relative;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:28px;
+  background:linear-gradient(145deg,#2a3043,#161925);border:2px solid transparent;transition:border-color .2s}
+.prof.on .av{border-color:var(--gold)}
+.prof .check{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:50%;background:var(--gold);color:#1a1205;
+  font-size:12px;font-weight:800;display:grid;place-items:center;border:2px solid var(--bg)}
+.prof span{font-size:13px;color:#d6d9e2}
+.list{margin:8px 16px;background:var(--bg2);border-radius:14px;overflow:hidden}
+.list button{width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;font-size:16px}
+.list button + button{border-top:.5px solid var(--line)}
+.list .chev{margin-left:auto;color:var(--muted)}
+.list svg{width:20px;height:20px;color:var(--gold)}
+.foot{color:var(--muted);font-size:12px;padding:14px 20px;line-height:1.5}
+
+/* ---------- tab bar ---------- */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;padding:4px 6px calc(var(--safe-b) + 2px);
+  background:rgba(14,16,24,.8);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);
+  border-top:.5px solid var(--line)}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:var(--tab-h);justify-content:center;
+  color:#80869a;font-size:10.5px;font-weight:600;text-align:center}
+.tabbar button svg{width:25px;height:25px}
+.tabbar button.on{color:var(--gold)}
+
+/* ---------- sheet ---------- */
+.backdrop{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+.backdrop.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:90;max-height:calc(100% - var(--safe-t) - 12px);background:var(--bg2);border-radius:20px 20px 0 0;
+  transform:translateY(105%);transition:transform .4s cubic-bezier(.2,.9,.25,1);overflow:hidden;display:flex;flex-direction:column}
+.sheet.on{transform:none}
+.grab{position:absolute;top:8px;left:50%;width:38px;height:5px;margin-left:-19px;border-radius:3px;background:rgba(255,255,255,.4);z-index:3}
+.sheet .close{position:absolute;top:12px;right:12px;z-index:3;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.45);
+  display:grid;place-items:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.sheet .close svg{width:15px;height:15px}
+.sheet-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-b) + 24px)}
+.sheet-hero{position:relative;aspect-ratio:16/10;max-width:100%;overflow:hidden}
+.sheet-hero .art-t{top:12cqi}
+.sheet-hero::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,transparent 40%,var(--bg2))}
+.sheet-body{padding:0 18px;margin-top:-42px;position:relative;z-index:2}
+.sheet-body h2{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:40px;line-height:.92;margin:0 0 10px;text-wrap:balance;letter-spacing:.01em}
+.sheet-body .meta{justify-content:flex-start}
+.sheet-body p{color:#c9ccd6;font-size:15px;line-height:1.5;max-width:62ch}
+.sheet-actions{display:flex;gap:10px;margin:14px 0}
+.sheet-actions .btn-primary{flex:1}
+.kv{font-size:14px;color:var(--muted);margin:6px 0}
+.kv b{color:var(--text);font-weight:600}
+.star{font-weight:700;color:var(--gold)}
+
+/* ---------- player ---------- */
+.player{position:fixed;inset:0;z-index:120;background:#000;opacity:0;pointer-events:none;transition:opacity .25s}
+.player.on{opacity:1;pointer-events:auto}
+.player .pbg{position:absolute;inset:0;filter:brightness(.42) saturate(1.1)}
+.player .ui{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(var(--safe-t) + 12px) 18px calc(var(--safe-b) + 18px)}
+.ptop{display:flex;align-items:center;gap:12px}
+.ptop b{font-size:17px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.center{display:flex;align-items:center;justify-content:center;gap:44px}
+.center button svg{width:36px;height:36px}
+.center .pp svg{width:60px;height:60px}
+.bar{height:4px;border-radius:2px;background:rgba(255,255,255,.25);overflow:hidden}
+.bar b{display:block;height:100%;background:var(--gold);width:0}
+.times{display:flex;justify-content:space-between;font-size:12px;color:#cfd2dc;margin-top:6px;font-variant-numeric:tabular-nums}
+.note{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+
+/* ---------- Dynamic-Island-Toast (iPhone 17 Pro: Insel ~11pt von oben) ---------- */
+.island{position:fixed;left:50%;top:11px;z-index:200;width:126px;height:37px;max-width:calc(100% - 24px);
+  /* im Vollbild (safe-area > 0) sitzt die echte Insel oben → Inhalt darunter; sonst normale Pille */
+  --cut:calc(min(var(--safe-t), 1px) * 37);
+  padding:var(--cut) 18px 0;border-radius:19px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;transform:translateX(-50%);opacity:0;
+  transition:width .45s cubic-bezier(.3,1.3,.4,1),height .45s cubic-bezier(.3,1.3,.4,1),border-radius .45s,opacity .18s;box-shadow:0 10px 34px rgba(0,0,0,.5)}
+.island.on{opacity:1;width:300px;height:calc(var(--cut) + 46px);border-radius:28px}
+.island > *{opacity:0;transition:opacity .2s}
+.island.on > *{opacity:1;transition-delay:.15s}
+.island .glyph{width:20px;height:20px;border-radius:50%;background:var(--gold);color:#1a1205;display:grid;place-items:center;font-size:12px;font-weight:900;flex:0 0 auto}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- HOME -->
+  <section class="screen active" id="s-home" data-tab="home">
+    <header class="topbar" id="homeBar">
+      <div class="brand" aria-label="Kinoabend">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="26" height="18" rx="3" fill="#f2b544"/><circle cx="3" cy="16" r="3.2" fill="#0c0e15"/><circle cx="29" cy="16" r="3.2" fill="#0c0e15"/><path d="M13 11.5v9l7.5-4.5z" fill="#0c0e15"/></svg>
+        <b>Kino<i>abend</i></b>
+      </div>
+      <div class="spacer"></div>
+      <button class="icon-btn" data-go="search" aria-label="Suche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    </header>
+    <div class="hero">
+      <div class="hero-track" id="heroTrack"></div>
+      <div class="dots" id="heroDots"></div>
+    </div>
+    <div id="homeRails"></div>
+  </section>
+
+  <!-- SEARCH -->
+  <section class="screen" id="s-search" data-tab="search">
+    <header class="topbar solid stack">
+      <h1 class="large-title">Suche</h1>
+      <label class="searchbox" for="q">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Filme, Serien, Schauspieler …" autocomplete="off" autocorrect="off" spellcheck="false">
+      </label>
+    </header>
+    <div id="searchOut"></div>
+  </section>
+
+  <!-- MOVIES -->
+  <section class="screen" id="s-movies" data-tab="movies">
+    <header class="topbar solid"><h1 class="large-title">Filme</h1></header>
+    <div class="chips" id="movieChips"></div>
+    <div class="grid" id="movieGrid"></div>
+  </section>
+
+  <!-- SHOWS -->
+  <section class="screen" id="s-shows" data-tab="shows">
+    <header class="topbar solid"><h1 class="large-title">Serien</h1></header>
+    <div class="chips" id="showChips"></div>
+    <div class="grid" id="showGrid"></div>
+  </section>
+
+  <!-- MY SPACE -->
+  <section class="screen" id="s-me" data-tab="me">
+    <header class="topbar solid"><h1 class="large-title">Mein Bereich</h1></header>
+    <div class="hello"><b id="helloName">Hallo!</b><span>Profile, Merkliste und Weiterschauen – alles bleibt auf diesem Gerät gespeichert.</span><button class="sub" id="subBtn">Abo verwalten</button></div>
+    <div class="section" style="margin-top:8px"><h2>Profile <button id="editProf"><small>Bearbeiten</small></button></h2></div>
+    <div class="profiles" id="profiles"></div>
+    <div id="meRails"></div>
+    <div class="section"><h2>Einstellungen</h2></div>
+    <div class="list">
+      <button id="clearHist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>Verlauf löschen<span class="chev">›</span></button>
+      <button id="clearList"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Merkliste leeren<span class="chev">›</span></button>
+      <button id="installHelp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 8l5-5 5 5"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg>Zum Home-Bildschirm<span class="chev">›</span></button>
+    </div>
+    <p class="foot">Kinoabend ist ein privates Demo-Projekt, basierend auf einem Open-Source-Streaming-UI. Es werden keine Videos abgespielt; fehlt ein Poster, wird es typografisch erzeugt.</p>
+  </section>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <button data-go="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button data-go="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Suche</button>
+  <button data-go="movies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4M3 12h18"/></svg>Filme</button>
+  <button data-go="shows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="m8 2 4 4 4-4"/></svg>Serien</button>
+  <button data-go="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Mein Bereich</button>
+</nav>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Details">
+  <div class="grab"></div>
+  <button class="close" id="sheetClose" aria-label="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div class="sheet-scroll" id="sheetScroll"></div>
+</div>
+
+<div class="player" id="player" aria-label="Player">
+  <div class="pbg" id="pbg"></div>
+  <div class="ui">
+    <div class="ptop">
+      <button class="icon-btn" id="pClose" aria-label="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <b id="pTitle"></b>
+    </div>
+    <div class="center">
+      <button id="pBack" aria-label="10 Sekunden zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none" font-weight="700">10</text></svg></button>
+      <button class="pp" id="pPlay" aria-label="Wiedergabe"></button>
+      <button id="pFwd" aria-label="10 Sekunden vor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none" font-weight="700">10</text></svg></button>
+    </div>
+    <div>
+      <div class="bar"><b id="pBar"></b></div>
+      <div class="times"><span id="pCur">0:00</span><span id="pDur">0:00</span></div>
+      <div class="note">Demo-Player – der Fortschritt wird für „Weiterschauen“ gespeichert.</div>
+    </div>
+  </div>
+</div>
+
+<div class="island" id="island" role="status" aria-live="polite"><span class="glyph">✓</span><span id="islandText"></span></div>
+
+<script>
+const DATA = {"movies":[{"title":"The Shawshank Redemption","genre":"Fictional","release_date":"1994-09-23","rating":9.3,"thumbnail_url":"https://m.media-amazon.com/images/I/51R0XUE2OAL._AC_UF894,1000_QL80_.jpg","director":"Frank Darabont","cast":["Tim Robbins","Morgan Freeman","Bob Gunton"],"duration":142,"tags":["inspirational","prison","friendship"],"description":"A heartwarming tale of hope and friendship set in Shawshank Prison, where Andy Dufresne, a banker falsely convicted of murder, finds solace and redemption through perseverance and an unlikely friendship with fellow inmate Red.","id":"01","fav":false},{"title":"The Godfather","genre":"Crime","release_date":"1972-03-24","rating":9.2,"thumbnail_url":"https://image.tmdb.org/t/p/original/wWJbBo5yjw22AIjE8isBFoiBI3S.jpg","director":"Francis Ford Coppola","cast":["Marlon Brando","Al Pacino","James Caan"],"duration":175,"tags":["mafia","classic","family"],"description":"A gripping saga of power, loyalty, and crime, following the Corleone family’s rise and struggles in the Mafia underworld, led by patriarch Vito Corleone and his reluctant son Michael.","id":"02","fav":false},{"title":"The Dark Knight","genre":"Action","release_date":"2008-07-18","rating":9.0,"thumbnail_url":"https://m.media-amazon.com/images/I/81IfoBox2TL.jpg","continue_Watch":"https://variety.com/wp-content/uploads/2013/08/the-dark-knight-christian-bale.jpg","director":"Christopher Nolan","cast":["Christian Bale","Heath Ledger","Aaron Eckhart"],"duration":152,"tags":["superhero","dc","thriller"],"description":"In this dark and thrilling superhero epic, Batman battles the chaos unleashed by his arch-nemesis, the Joker, while struggling with his own inner demons and the price of heroism.","id":"03","fav":true},{"title":"Pulp Fiction","genre":"Crime","release_date":"1994-10-14","rating":8.9,"thumbnail_url":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFUXiwgBsUeyPkY-Fzh4ZzI4gDhJ5_e2Nn-g&s","director":"Quentin Tarantino","cast":["John Travolta","Uma Thurman","Samuel L. Jackson"],"duration":154,"tags":["non-linear","cult","dialogue"],"description":"A wildly original, non-linear narrative that intertwines multiple stories of crime, violence, and redemption, centered around a cast of colorful, morally complex characters in Los Angeles.","id":"04","fav":false},{"title":"Forrest Gump","genre":"Drama","release_date":"1994-07-06","rating":8.8,"thumbnail_url":"https://m.media-amazon.com/images/I/61LjRzEu9US.jpg","director":"Robert Zemeckis","cast":["Tom Hanks","Robin Wright","Gary Sinise"],"duration":142,"tags":["inspirational","life journey","friendship"],"description":"The life story of Forrest Gump, a kind-hearted man with a low IQ, who unwittingly influences major historical events while pursuing his dreams and spreading positivity to everyone he meets.","id":"05","fav":false},{"title":"Inception","genre":"Sci-Fi","release_date":"2010-07-16","rating":8.8,"thumbnail_url":"https://m.media-amazon.com/images/I/71thFiIUSpL._AC_UF894,1000_QL80_.jpg","director":"Christopher Nolan","cast":["Leonardo DiCaprio","Joseph Gordon-Levitt","Ellen Page"],"duration":148,"tags":["mind-bending","thriller","dream"],"description":" A mind-bending sci-fi thriller that follows a skilled thief, Dom Cobb, who specializes in extracting secrets from deep within the subconscious. Tasked with planting an idea instead of stealing one, Cobb navigates the perilous world of dreams and reality.","id":"06","fav":false},{"title":"Fight Club","genre":"Drama","release_date":"1999-10-15","rating":8.8,"thumbnail_url":"https://images-cdn.ubuy.co.in/6585bef7a2ae5d32f8760cfb-fight-club-movie-poster-1-wall-art.jpg","director":"David Fincher","cast":["Brad Pitt","Edward Norton","Helena Bonham Carter"],"duration":139,"tags":["psychological","cult","anti-establishment"],"description":"A dark and provocative film about an insomniac office worker who forms an underground fight club as a form of male bonding, only to see it spiral into anarchic violence and personal discovery.","id":"07","fav":false},{"title":"The Matrix","genre":"Sci-Fi","release_date":"1999-03-31","rating":8.7,"thumbnail_url":"https://rukminim2.flixcart.com/image/850/1000/kmns7m80/poster/l/p/f/medium-the-matrix-an-american-maxi-origins-jumbo-medium-size-original-imagfgb6gx9yhwzs.jpeg?q=90&crop=false","director":"Lana Wachowski, Lilly Wachowski","cast":["Keanu Reeves","Laurence Fishburne","Carrie-Anne Moss"],"duration":136,"tags":["simulation","cyberpunk","revolution"],"description":"A cyberpunk sci-fi classic where a computer hacker, Neo, discovers that reality is a simulation controlled by machines. With the help of rebels, he fights to awaken humanity and free them from the artificial world.","id":"08","fav":false},{"title":"Goodfellas","genre":"Crime","release_date":"1990-09-19","rating":8.7,"thumbnail_url":"https://m.media-amazon.com/images/I/81uOV6oMYtL.jpg","director":"Martin Scorsese","cast":["Robert De Niro","Ray Liotta","Joe Pesci"],"duration":146,"tags":["mafia","based on true story","violence"],"description":" A gripping crime drama chronicling the rise and fall of Henry Hill, a mob associate, as he navigates the dangerous and alluring world of the Mafia. A tale of power, betrayal, and survival.","id":"09","fav":false},{"title":"The Lord of the Rings","genre":"Fantasy","release_date":"2003-12-17","rating":8.9,"thumbnail_url":"https://images-cdn.ubuy.co.in/634d3a816c5d2a5aa35bba03-poster-stop-online-the-lord-of-the-rings.jpg","director":"Peter Jackson","cast":["Elijah Wood","Viggo Mortensen","Ian McKellen"],"duration":201,"tags":["epic","adventure","fantasy"],"description":"The epic conclusion to the Lord of the Rings trilogy, where the forces of good rally for a final battle against Sauron, and Frodo’s perilous journey to destroy the One Ring reaches its climax.","id":"10","fav":false},{"title":"The Lion King","genre":"Animation","release_date":"1994-06-24","rating":8.5,"thumbnail_url":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ8nP2KvFonkVUimShO9DfZiJ3YutVYnNPCAA&s","continue_Watch":"https://media.cntraveller.com/photos/675713f6766208216638f4ff/3:2/w_1557,h_1038,c_limit/Mufasa-still-disney-dec24-pr.jpeg","director":"Roger Allers, Rob Minkoff","cast":["Matthew Broderick","Jeremy Irons","James Earl Jones"],"duration":88,"tags":["disney","family","animated"],"description":"A heartwarming animated adventure about Simba, a young lion prince who must embrace his destiny and reclaim his rightful place as king after the betrayal of his uncle, Scar.","id":"11","fav":true},{"title":"Interstellar","genre":"Sci-Fi","release_date":"2014-11-07","rating":8.6,"thumbnail_url":"https://images-cdn.ubuy.co.in/6352289f38bb253c44612d53-interstellar-movie-poster-24-x-36-inches.jpg","director":"Christopher Nolan","cast":["Matthew McConaughey","Anne Hathaway","Jessica Chastain"],"duration":169,"tags":["space","time travel","epic"],"description":"A visually stunning space epic where a group of astronauts embarks on a journey through a wormhole to find a new habitable planet, as Earth faces an impending environmental collapse.","id":"12","fav":false},{"title":"Gladiator","genre":"Drama","release_date":"2000-05-05","rating":8.5,"thumbnail_url":"https://m.media-amazon.com/images/I/816ibBoB3ML.jpg","director":"Ridley Scott","cast":["Russell Crowe","Joaquin Phoenix","Connie Nielsen"],"duration":155,"tags":["ancient rome","epic","revenge"],"description":"A gripping tale of a betrayed Roman general who rises as a gladiator to seek vengeance against the corrupt emperor who murdered his family and seized the throne.","id":"13","fav":false},{"title":"The Prestige","genre":"Drama","release_date":"2006-10-20","rating":8.5,"thumbnail_url":"https://m.media-amazon.com/images/I/81DfM0zgWHL.jpg","director":"Christopher Nolan","cast":["Christian Bale","Hugh Jackman","Scarlett Johansson"],"duration":130,"tags":["magic","rivalry","mystery"],"description":"A mesmerizing tale of two rival magicians in Victorian-era London, whose obsession with outperforming each other leads to tragic consequences and astonishing illusions.","id":"14","fav":false},{"title":"The Green Mile","genre":"Drama","release_date":"1999-12-10","rating":8.6,"thumbnail_url":"https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p24429_p_v12_bf.jpg","continue_Watch":"https://www.hollywoodreporter.com/wp-content/uploads/2019/10/the_green_mile_-_h_-_1999.jpg?w=1296&h=730&crop=1","director":"Frank Darabont","cast":["Tom Hanks","Michael Clarke Duncan","David Morse"],"duration":189,"tags":["prison","supernatural","compassion"],"description":"A touching and supernatural drama about a death row corrections officer who encounters an inmate with an extraordinary gift that changes his perception of justice and humanity.","id":"15","fav":true},{"title":"Schindler's List","genre":"History","release_date":"1993-12-15","rating":9.0,"thumbnail_url":"https://www.tallengestore.com/cdn/shop/files/SchindlersList_1993_-StevenSpielberg-HollywoodClassicWarMoviePoster_51fb7da0-d6da-4403-8d22-6cec8963a1fe.jpg?v=1732608508","director":"Steven Spielberg","cast":["Liam Neeson","Ralph Fiennes","Ben Kingsley"],"duration":195,"tags":["holocaust","war","based on true story"],"description":"A harrowing yet inspiring historical drama based on the true story of Oskar Schindler, a German businessman who saved over a thousand Jewish refugees during the Holocaust.","id":"16","fav":false},{"title":"The Silence of the Lambs","genre":"Thriller","release_date":"1991-02-14","rating":8.6,"thumbnail_url":"https://mondoshop.com/cdn/shop/files/Nate.Sweitzer_Silence.of.the.Lambs_large_1_ac828500-8458-47af-9eb3-3ffe4abe34b9.jpg?v=1705361598","director":"Jonathan Demme","cast":["Jodie Foster","Anthony Hopkins","Scott Glenn"],"duration":118,"tags":["psychological thriller","crime","serial killer"],"description":"A tense psychological thriller where young FBI trainee Clarice Starling seeks the help of brilliant but psychotic cannibal, Dr. Hannibal Lecter, to catch a serial killer known as Buffalo Bill.","id":"17","fav":false},{"title":"Saving Private Ryan","genre":"War","release_date":"1998-07-24","rating":8.6,"thumbnail_url":"https://i.pinimg.com/474x/d9/03/67/d9036710e387d04fb5c74d37159972a9.jpg","director":"Steven Spielberg","cast":["Tom Hanks","Matt Damon","Tom Sizemore"],"duration":169,"tags":["ww2","soldiers","heroism"],"description":"A powerful war film following a squad of American soldiers during World War II as they embark on a dangerous mission to rescue a paratrooper whose brothers have all been killed in action.","id":"18","fav":false},{"title":"The Departed","genre":"Crime","release_date":"2006-10-06","rating":8.5,"thumbnail_url":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUQ1dWY0PmwXZzlJiSJcqzD_R34MV4MTQ4CA&s","director":"Martin Scorsese","cast":["Leonardo DiCaprio","Matt Damon","Jack Nicholson"],"duration":151,"tags":["mafia","undercover","betrayal"],"description":"An intense crime thriller following an undercover cop infiltrating the Irish mob and a mole inside the police force, as both race against time to expose each other.","id":"19","fav":false},{"title":"Whiplash","genre":"Drama","release_date":"2014-10-10","rating":8.5,"thumbnail_url":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIZQYke1hgTSW5mwGD7Ihggs20mD3Rg7rj7w&s","director":"Damien Chazelle","cast":["Miles Teller","J.K. Simmons","Paul Reiser"],"duration":106,"tags":["music","passion","mentor"],"description":"A gripping drama about an ambitious young drummer and his ruthless music instructor, whose intense mentorship pushes him to the brink of greatness and madness.","id":"20","fav":false},{"title":"The Wolf of Wall Street","genre":"Biography","release_date":"2013-12-25","rating":8.2,"thumbnail_url":"https://m.media-amazon.com/images/I/71Cj5nIMGQL._AC_UF1000,1000_QL80_.jpg","director":"Martin Scorsese","cast":["Leonardo DiCaprio","Jonah Hill","Margot Robbie"],"duration":180,"tags":["finance","rise and fall","based on true story"],"description":"A wild and outrageous true story of Jordan Belfort, a stockbroker who rose to immense wealth through fraud and excess, only to face a spectacular downfall.","id":"21","fav":false},{"title":"The Social Network","genre":"Biography","release_date":"2010-10-01","rating":7.7,"thumbnail_url":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQLPUS6wt8uRWkFHZNUskykvHf-dS3GRqUSjQ&s","director":"David Fincher","cast":["Jesse Eisenberg","Andrew Garfield","Justin Timberlake"],"duration":120,"tags":["technology","facebook","entrepreneurship"],"description":"A riveting drama about the creation of Facebook and the power struggles that ensued, highlighting the ambition, betrayal, and genius behind one of the biggest tech revolutions.","id":"22","fav":false},{"title":"Parasite","genre":"Thriller","release_date":"2019-05-30","rating":8.6,"thumbnail_url":"https://images-cdn.ubuy.co.in/6364358337da3701121dc9f4-parasite-2019-movie-poster-24x36-inches.jpg","director":"Bong Joon Ho","cast":["Song Kang-ho","Lee Sun-kyun","Cho Yeo-jeong"],"duration":132,"tags":["social commentary","class divide","korean"],"description":" A dark social thriller about a poor family infiltrating the lives of a wealthy household through deception, only to face unforeseen consequences as their two worlds collide.","id":"23","fav":false},{"title":"Django Unchained","genre":"Western","release_date":"2012-12-25","rating":8.4,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BMjIyNTQ5NjQ1OV5BMl5BanBnXkFtZTcwODg1MDU4OA@@._V1_.jpg","director":"Quentin Tarantino","cast":["Jamie Foxx","Christoph Waltz","Leonardo DiCaprio"],"duration":165,"tags":["revenge","slavery","action"],"description":"A thrilling and action-packed Western about a freed slave who teams up with a bounty hunter to rescue his wife and take vengeance on brutal slave owners.","id":"24","fav":false},{"title":"Mad Max: Fury Road","genre":"Action","release_date":"2015-05-15","rating":8.1,"thumbnail_url":"https://m.media-amazon.com/images/I/61Ln-qDnBnL.jpg","continue_Watch":"https://static1.srcdn.com/wordpress/wp-content/uploads/2024/04/mad-max-fury-road-beggining-tom-hardy.jpg","director":"George Miller","cast":["Tom Hardy","Charlize Theron","Nicholas Hoult"],"duration":120,"tags":["post-apocalyptic","car chase","survival"],"description":"A high-octane action spectacle set in a post-apocalyptic wasteland, where a rebel warrior and a drifter must escape a tyrannical warlord and his deadly followers.","id":"25","fav":true},{"title":"La La Land","genre":"Musical","release_date":"2016-12-09","rating":8.0,"thumbnail_url":"https://www.tallengestore.com/cdn/shop/products/LalaLand1_d8e6c61d-2a83-4bd1-927a-07dc20c4293b.jpg?v=1568977047","director":"Damien Chazelle","cast":["Ryan Gosling","Emma Stone","John Legend"],"duration":128,"tags":["romance","music","hollywood"],"description":"A dazzling and emotional musical about an aspiring actress and a jazz musician whose love story unfolds against the backdrop of Los Angeles and the pursuit of dreams.","id":"26","fav":false},{"title":"Joker","genre":"Crime","release_date":"2019-10-04","rating":8.4,"thumbnail_url":"https://images-cdn.ubuy.co.in/6345f652ec87e81aa558cd24-ubuy-online-shopping.jpg","director":"Todd Phillips","cast":["Joaquin Phoenix","Robert De Niro","Zazie Beetz"],"duration":122,"tags":["psychological","dark","dc"],"description":"A haunting origin story of the Joker, chronicling the transformation of a troubled comedian into Gotham’s most infamous criminal mastermind, driven by society’s neglect and cruelty.","id":"27","fav":false},{"title":"The Grand Budapest Hotel","genre":"Comedy","release_date":"2014-03-28","rating":8.1,"thumbnail_url":"https://m.media-amazon.com/images/I/713kiC-8JhL.jpg","director":"Wes Anderson","cast":["Ralph Fiennes","Tony Revolori","Adrien Brody"],"duration":99,"tags":["adventure","comedy","stylized"],"description":"A quirky and visually stunning comedy about the adventures of a legendary concierge and his loyal protégé as they navigate a series of eccentric and criminal escapades.","id":"28","fav":false},{"title":"The Intouchables","genre":"Biography","release_date":"2011-11-02","rating":8.5,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BMTYxNDA3MDQwNl5BMl5BanBnXkFtZTcwNTU4Mzc1Nw@@._V1_FMjpg_UX1000_.jpg","director":"Olivier Nakache, ric Toledano","cast":["Franois Cluzet","Omar Sy","Anne Le Ny"],"duration":112,"tags":["friendship","based on true story","uplifting"],"description":"An uplifting true story about the unlikely friendship between a wealthy quadriplegic and his carefree caregiver, who brings joy and spontaneity into his structured life.","id":"29","fav":false},{"title":"A Beautiful Mind","genre":"Biography","release_date":"2001-12-21","rating":8.2,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BNzljZTk5ZDgtZTQ1Zi00NTM4LThlOGUtZDk2MGM4NDQ4NWQyXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg","director":"Ron Howard","cast":["Russell Crowe","Ed Harris","Jennifer Connelly"],"duration":135,"tags":["mathematics","psychology","inspiration"],"description":"A gripping biographical drama about John Nash, a brilliant mathematician struggling with schizophrenia, whose groundbreaking work reshaped modern economics.","id":"30","fav":false},{"title":"Spirited Away","genre":"Animation","release_date":"2001-07-20","rating":8.6,"thumbnail_url":"https://m.media-amazon.com/images/I/81m8urzEz4L.jpg","director":"Hayao Miyazaki","cast":["Rumi Hiiragi","Miyu Irino","Mari Natsuki"],"duration":125,"tags":["anime","fantasy","adventure"],"description":"A magical adventure following a young girl who becomes trapped in a mysterious spirit world, where she must find the courage to free herself and her parents.","id":"31","fav":false},{"title":"Gangs of Wasseypur","genre":"Crime","release_date":"2012-06-22","rating":8.2,"thumbnail_url":"https://m.media-amazon.com/images/I/A1CBx9ffNxL.jpg","continue_Watch":"https://static.toiimg.com/thumb/msid-112364860,width-1280,height-720,resizemode-4/112364860.jpg","director":"Anurag Kashyap","cast":["Manoj Bajpayee","Nawazuddin Siddiqui","Richa Chadha"],"duration":321,"tags":["gang wars","revenge","crime drama"],"description":"A gripping saga of power, crime, and vengeance set in the coal mafia-ridden town of Wasseypur, spanning multiple generations.","id":"32","fav":true},{"title":"Taare Zameen Par","genre":"Drama","release_date":"2007-12-21","rating":8.4,"thumbnail_url":"https://m.media-amazon.com/images/I/611JgDfdb7L.jpg","continue_Watch":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBglSi2F8QL1NjRmvmTyFESZkq9KfXyKwBSg&s","director":"Aamir Khan","cast":["Darsheel Safary","Aamir Khan","Tisca Chopra"],"duration":165,"tags":["education","inspiration","child psychology"],"description":"An 8-year-old dyslexic boy struggles in school until an unconventional teacher helps him discover his hidden potential.","id":"33","fav":true},{"title":"Sacred Games","genre":"Crime, Thriller","release_date":"2018-07-06","rating":8.5,"thumbnail_url":"https://mir-s3-cdn-cf.behance.net/project_modules/fs/ecde0e70804199.5baf99ea34f28.jpg","director":"Anurag Kashyap, Vikramaditya Motwane","cast":["Saif Ali Khan","Nawazuddin Siddiqui","Radhika Apte"],"duration":16,"tags":["crime","thriller","mystery"],"description":"A Mumbai cop's pursuit of a criminal mastermind leads to a conspiracy with apocalyptic consequences.","id":"34","fav":false,"Binge":true},{"title":"Mirzapur","genre":"Action, Crime, Thriller","release_date":"2018-11-16","rating":8.3,"thumbnail_url":"https://m.media-amazon.com/images/I/815P1fCHvjL._AC_UF1000,1000_QL80_.jpg","director":"Karan Anshuman, Gurmmeet Singh","cast":["Pankaj Tripathi","Ali Fazal","Divyenndu"],"duration":19,"tags":["gang wars","revenge","power"],"description":"A lawless town is ruled by a mafia don, and two brothers get caught in the crossfire of crime and ambition.","id":"35","fav":false,"Binge":true},{"title":"Panchayat","genre":"Comedy, Drama","release_date":"2020-04-03","rating":8.9,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BYzkwZGNkYTctZDc2MS00OWM2LWI2NTUtMTM2ZGMzMTY0N2Q1XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg","director":"Deepak Kumar Mishra","cast":["Jitendra Kumar","Raghubir Yadav","Neena Gupta"],"duration":16,"tags":["rural life","humor","social issues"],"description":"An engineering graduate takes up a low-paying government job in a rural village, leading to unexpected adventures.","id":"36","fav":false,"Binge":true},{"title":"Kota Factory","genre":"Drama","release_date":"2019-04-16","rating":9.0,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BY2U5MjY1NWEtZDI2MS00NTlhLWEyODQtYzE0MzY3NDUyNzE3XkEyXkFqcGc@._V1_.jpg","director":"Raghav Subbu","cast":["Mayur More","Jitendra Kumar","Ranjan Raj"],"duration":15,"tags":["education","student life","inspiration"],"description":"A realistic take on the struggles of students preparing for the IIT entrance exam in Kota.","id":"37","fav":false,"Binge":true},{"title":"Asur","genre":"Mystery, Thriller","release_date":"2020-03-02","rating":8.4,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BMDZkOGQzMjItNTliOC00NTIxLTg4ODEtNTMxZWY1OTk5ZWM0XkEyXkFqcGc@._V1_.jpg","director":"Oni Sen","cast":["Arshad Warsi","Barun Sobti","Anupriya Goenka"],"duration":16,"tags":["crime","psychological thriller","mythology"],"description":"A unique blend of mythology and crime, where a serial killer challenges forensic experts in a deadly mind game.","id":"38","fav":false,"Binge":true},{"title":"The Family Man","genre":"Action, Thriller","release_date":"2019-09-20","rating":8.7,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BMDc3NWMwNGMtYjc3Mi00NzU5LWFiYjgtMTJjZGE3ZmFiNzRjXkEyXkFqcGc@._V1_.jpg","director":"Raj & DK","cast":["Manoj Bajpayee","Priyamani","Sharib Hashmi"],"duration":19,"tags":["spy thriller","terrorism","family drama"],"description":"A middle-class man secretly works as an intelligence officer, balancing his family life with high-stakes missions.","id":"39","fav":false,"Binge":true},{"title":"Sanam Teri Kasam","genre":"Drama","release_date":"2016-02-05","rating":7.3,"thumbnail_url":"https://v3img.voot.com/resizeMedium,w_914,h_514/v3Storage/assets/sanamterikasamtv-1697792959329-1716308995775.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/5381/1736849725381-t","director":"Radhika Rao, Vinay Sapru","cast":["Harshvardhan Rane","Mawra Hocane","Vijay Raaz"],"duration":154,"tags":["romantic drama","tragic love story","music-driven"],"description":"A heartfelt love story of a misunderstood girl and a rugged yet kind-hearted man, bound together by fate and tragedy.","id":4,"fav":false,"language":"Hindi"}],"Shows":[{"title":"Laughter Chef","genre":"Comedy","release_date":"2024-03-15","id":1,"rating":7.5,"thumbnail_url":"https://img10.hotstar.com/image/upload/f_auto/sources/r1/cms/prod/5371/1740560295371-i","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/4865/1740560324865-t","director":"Rajeev Mehta","fav":true,"language":"Hindi"},{"title":"Raodies","genre":"Reality","release_date":"2003-10-01","id":2,"rating":7.2,"thumbnail_url":"https://v3img.voot.com/resizeMedium,w_914,h_514/v3Storage/assets/verticaltv-1739443658455.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/6262/1741440046262-t","director":"Raghu Ram","fav":true,"language":"Hindi"},{"title":"Pokemon","genre":"Animation","release_date":"1997-04-01","id":3,"rating":8.1,"thumbnail_url":"https://v3img.voot.com/resizeMedium,w_914,h_514/v3Storage/assets/pokemon-1707725560430.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/6940/1734433856940-t","director":"Kunihiko Yuyama","fav":true,"language":"Hin, Eng, +2 more"},{"title":"Big Boss","genre":"Reality","release_date":"2006-11-03","id":4,"rating":6.9,"thumbnail_url":"https://v3img.voot.com/resizeMedium,w_914,h_514/v3Storage/assets/tv-1737455056722.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/6551/1737622856551-t","director":"Endemol Shine India","fav":true,"language":"Hindi"},{"title":"Asur","genre":"Mystery, Thriller","release_date":"2020-03-02","id":5,"rating":8.5,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BMDZkOGQzMjItNTliOC00NTIxLTg4ODEtNTMxZWY1OTk5ZWM0XkEyXkFqcGc@._V1_.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/6334/1735212596334-t","director":"Oni Sen","fav":false,"language":"Hin, Eng, +2 more"},{"title":"Fifty Shades of Grey","genre":"Drama","release_date":"2015-02-13","id":6,"rating":4.1,"thumbnail_url":"https://v3img.voot.com/resizeMedium,w_914,h_514/v3Storage/assets/vertical-carousel-tv_50shades-1727778969348.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/9124/1739443359124-t","director":"Sam Taylor-Johnson","fav":true,"language":"Hin, Eng, +2 more"},{"title":"The Family Man","genre":"Action, Thriller","id":7,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BMDc3NWMwNGMtYjc3Mi00NzU5LWFiYjgtMTJjZGE3ZmFiNzRjXkEyXkFqcGc@._V1_.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/4865/1740560324865-t","rating":8.7,"release_date":"2019-09-20","director":"Raj & DK","fav":true,"language":"Hindi"},{"title":"Kota Factory","genre":"Drama","release_date":"2019-04-16","id":8,"rating":9.0,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BY2U5MjY1NWEtZDI2MS00NTlhLWEyODQtYzE0MzY3NDUyNzE3XkEyXkFqcGc@._V1_.jpg","director":"Raghav Subbu"},{"title":"Stranger Things","genre":"Sci-Fi, Thriller","id":9,"thumbnail_url":"https://rukminim3.flixcart.com/image/850/1000/jr3t5e80/poster/a/w/f/medium-stranger-things-poster-for-room-office-13-inch-x-19-inch-original-imafcww8v99r4qhh.jpeg?q=20&crop=false","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/5402/1740560335402-t","rating":8.7,"release_date":"2016-07-15","director":"Duffer Brothers","fav":true,"language":"Eng, Hin"},{"title":"Scam 1992","genre":"Biography, Crime","id":10,"thumbnail_url":"https://images.slivcdn.com/videoasset_images/scam1992_3june_portrait_thumb.jpg?w=172&q=high","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/8501/1739368298501-t","rating":9.4,"release_date":"2020-10-09","director":"Hansal Mehta","fav":true,"language":"Hindi"},{"title":"The Crown","genre":"Biography, Drama","id":11,"thumbnail_url":"https://m.media-amazon.com/images/I/71f97nf-u9L._AC_UF1000,1000_QL80_.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/6304/1737609446304-t","rating":8.6,"release_date":"2016-11-04","director":"Peter Morgan","fav":false,"language":"Eng"},{"title":"Made in Heaven","genre":"Drama","id":12,"thumbnail_url":"https://i.pinimg.com/564x/d3/c2/db/d3c2dbfafce1557ad2e162853b5891bb.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/5107/1739967545107-t","rating":8.3,"release_date":"2019-03-08","director":"Zoya Akhtar, Prashant Nair","fav":true,"language":"Hindi, Eng"},{"title":"Peaky Blinders","genre":"Crime, Drama","id":13,"thumbnail_url":"https://rukminim2.flixcart.com/image/850/1000/k0y6cnk0/poster/9/f/6/medium-peaky-blinders-tv-series-poster-for-room-office-13-inch-x-original-imafkm3uhgwyy3gn.jpeg?q=20&crop=false","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/7772/1740560217772-t","rating":8.8,"release_date":"2013-09-12","director":"Steven Knight","fav":false,"language":"Eng"},{"title":"Panchayat","genre":"Comedy, Drama","release_date":"2020-04-03","id":14,"rating":8.9,"thumbnail_url":"https://m.media-amazon.com/images/M/MV5BYzkwZGNkYTctZDc2MS00OWM2LWI2NTUtMTM2ZGMzMTY0N2Q1XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg","director":"Deepak Kumar Mishra","fav":true},{"title":"The Vampire Diaries","genre":"Fantasy, Romance","id":15,"thumbnail_url":"https://images-cdn.ubuy.co.in/633fece25c6f80247146a2a3-the-vampire-diaries-poster-frameless.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/9261/1739368319261-t","rating":7.7,"release_date":"2009-09-10","director":"Julie Plec, Kevin Williamson","fav":true,"language":"Eng, Hin"},{"title":"Brooklyn Nine-Nine","genre":"Comedy, Crime","id":16,"thumbnail_url":"https://rukminim2.flixcart.com/image/850/1000/jsrtn680/poster/p/j/a/medium-brooklyn99c-brooklyn-nine-nine-tv-show-poster-for-room-original-imafe9nznefmvz8c.jpeg?q=90&crop=false","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/9404/1739443449404-t","rating":8.4,"release_date":"2013-09-17","director":"Michael Schur, Dan Goor","fav":false,"language":"Eng"},{"title":"The Night Manager (India)","genre":"Thriller","id":17,"thumbnail_url":"https://upload.wikimedia.org/wikipedia/en/4/4c/The_Night_Manager_%28Indian_TV_series%29.jpg","logo":"https://img10.hotstar.com/image/upload/f_auto,h_156/sources/r1/cms/prod/6825/1737609506825-t","rating":7.6,"release_date":"2023-02-17","director":"Sandeep Modi","fav":false,"language":"Hindi"},{"title":"Sacred Games","genre":"Crime, Thriller","release_date":"2018-07-06","rating":8.5,"id":18,"thumbnail_url":"https://mir-s3-cdn-cf.behance.net/project_modules/fs/ecde0e70804199.5baf99ea34f28.jpg","director":"Anurag Kashyap, Vikramaditya Motwane","fav":false},{"title":"Mirzapur","genre":"Action, Crime, Thriller","release_date":"2018-11-16","rating":8.3,"id":19,"thumbnail_url":"https://m.media-amazon.com/images/I/815P1fCHvjL._AC_UF1000,1000_QL80_.jpg","fav":false}]};
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("ka_"+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem("ka_"+k, JSON.stringify(v)); }catch(e){} }
+};
+const ICON = {
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="4.5" height="16" rx="1.2"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>'
+};
+const haptic = () => { try{ navigator.vibrate && navigator.vibrate(8); }catch(e){} };
+
+/* ---------- data ---------- */
+const movies = (DATA.movies || []).filter(m => m && m.title).map(m => ({...m, kind:"movie", key:"m"+m.id}));
+const shows  = (DATA.Shows  || []).filter(m => m && m.title).map(m => ({...m, kind:"show",  key:"s"+m.id}));
+const all = [...movies, ...shows];
+const byKey = Object.fromEntries(all.map(m => [m.key, m]));
+const year = m => (m.release_date || "").slice(0,4) || "2024";
+const dur  = m => m.duration ? `${Math.floor(m.duration/60)} Std. ${m.duration%60} Min.` : (m.kind==="show" ? "Serie" : "1 Std. 45 Min.");
+const age  = m => m.rating ? `U/A ${Math.floor(m.rating)}+` : "U/A 13+";
+const genres = m => (m.genre || "").split(",").map(s => s.trim()).filter(Boolean);
+const hasGenre = (m, g) => genres(m).some(x => x.toLowerCase() === g.toLowerCase());
+
+/* ---------- generated poster art ---------- */
+const HUE = {Drama:190,Crime:354,Action:20,"Sci-Fi":248,Comedy:42,Reality:318,Animation:202,Thriller:158,Biography:30,
+  Fantasy:276,History:34,War:78,Western:26,Musical:330,Mystery:226,Romance:340,Fictional:212};
+const hash = s => { let h = 7; for(const c of s) h = (h*31 + c.charCodeAt(0)) >>> 0; return h; };
+const hueOf = m => { const g = genres(m)[0]; const base = HUE[g] ?? hash(m.title) % 360; return (base + hash(m.title) % 34 - 17 + 360) % 360; };
+function art(m, v="p"){
+  const L = m.title.length;
+  const W = Math.max(...m.title.split(/\s+/).map(w => w.length));            // längstes Wort darf nicht umbrechen
+  const fs = v==="w" ? Math.min(L<=10 ? 13 : L<=18 ? 10 : 8, 62/(0.68*W))
+                     : Math.min(L<=7 ? 27 : L<=12 ? 21 : L<=20 ? 17 : 14, 82/(0.68*W));
+  const meta = [year(m), m.director].filter(Boolean).join(" · ");
+  const src = v==="p" ? m.thumbnail_url : (m.continue_Watch || m.thumbnail_url);
+  const pic = src ? `<img class="art-img" src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+  return `<div class="art art-${v}" style="--h:${hueOf(m)};--fs:${fs}" aria-hidden="true">${pic}
+    <span class="art-g">${esc(genres(m)[0] || "")}</span><span class="art-t">${esc(m.title)}</span><span class="art-m">${esc(meta)}</span></div>`;
+}
+
+/* ---------- state ---------- */
+let watchlist = store.get("watchlist", ["s1","s13"]);
+let progress  = store.get("progress", {"m12":65,"m24":45,"m33":30,"m20":30,"m15":30});
+let profile   = store.get("profile", "User1");
+const profiles = [{name:"User1",avatar:"🛡️"},{name:"User2",avatar:"😊"},{name:"Aamir",avatar:"🕷️"},{name:"User3",avatar:"😎"},{name:"Kids",avatar:"👶"}];
+const saveAll = () => { store.set("watchlist", watchlist); store.set("progress", progress); store.set("profile", profile); };
+
+/* ---------- builders ---------- */
+const card = (m, o={}) => `
+  <button class="card${o.big?" big":""}${o.rank?" ranked":""}" data-open="${m.key}" aria-label="${esc(m.title)}">
+    <div class="poster">${art(m)}${o.rank?`<span class="rank">${o.rank}</span>`:""}</div>
+    ${o.noTitle ? "" : `<div class="t">${esc(m.title)}</div>`}
+  </button>`;
+const wide = (m, pct) => `
+  <button class="wide" data-play="${m.key}" aria-label="${esc(m.title)} weiterschauen">
+    <div class="thumb">${art(m,"w")}<div class="play">${ICON.play}</div><div class="progress"><b style="width:${pct}%"></b></div></div>
+    <div class="t">${esc(m.title)}</div>
+    <div class="s">${Math.max(1, Math.round((100-pct) * (m.duration||45) / 100))} Min. übrig</div>
+  </button>`;
+const rail = (title, items, fn, more) => items.length ? `
+  <div class="section"><h2>${esc(title)}${more?`<button data-go="${more}"><small>Alle</small></button>`:""}</h2>
+  <div class="rail">${items.map(fn).join("")}</div></div>` : "";
+
+/* ---------- HOME ---------- */
+let heroTimer;
+function renderHome(){
+  const featured = [...movies.filter(m => m.fav), ...shows.filter(s => s.fav).slice(0,2)];
+  const track = $("#heroTrack");
+  const keepLeft = track.scrollLeft;
+  track.innerHTML = featured.map(m => `
+    <div class="hero-slide">
+      ${art(m,"h")}
+      <div class="hero-info">
+        <div class="badge">${m.kind==="show" ? "Neue Folgen" : "Neu hinzugefügt"}</div>
+        <h1>${esc(m.title)}</h1>
+        <div class="meta"><span>${year(m)}</span><span class="dot">•</span><span>${age(m)}</span><span class="dot">•</span><span>${dur(m)}</span><span class="dot">•</span><span>4 Sprachen</span></div>
+        <div class="hero-genres">${[...genres(m), ...(m.tags||[]).map(t=>t[0].toUpperCase()+t.slice(1))].map(esc).join(" · ")}</div>
+        <div class="hero-actions">
+          <button class="btn-primary" data-play="${m.key}">${ICON.play}${progress[m.key] ? "Weiterschauen" : "Jetzt ansehen"}</button>
+          <button class="btn-sq" data-wl="${m.key}" aria-label="Merkliste">${watchlist.includes(m.key)?ICON.check:ICON.plus}</button>
+          <button class="btn-sq" data-open="${m.key}" aria-label="Details">${ICON.info}</button>
+        </div>
+      </div>
+    </div>`).join("");
+  track.scrollLeft = keepLeft;
+  $("#heroDots").innerHTML = featured.map((_,i) => `<i class="${i===Math.round(keepLeft/(track.clientWidth||1))?"on":""}"></i>`).join("");
+  track.onscroll = () => {
+    const i = Math.round(track.scrollLeft / track.clientWidth);
+    [...$("#heroDots").children].forEach((d,j) => d.classList.toggle("on", i===j));
+  };
+  clearInterval(heroTimer);
+  heroTimer = setInterval(() => {
+    if(!$("#s-home").classList.contains("active") || document.hidden || $("#sheet").classList.contains("on")) return;
+    const n = featured.length, i = Math.round(track.scrollLeft / track.clientWidth);
+    track.scrollTo({left: ((i+1)%n) * track.clientWidth, behavior:"smooth"});
+  }, 6500);
+
+  const cont = Object.entries(progress).filter(([k]) => byKey[k]).reverse();
+  const top10 = [...movies].sort((a,b) => (b.rating||0)-(a.rating||0)).slice(0,10);
+  $("#homeRails").innerHTML =
+    rail("Weiterschauen für " + profile, cont, ([k,p]) => wide(byKey[k], p)) +
+    rail("Top 10 Filme", top10, (m,i) => card(m, {big:true, rank:i+1, noTitle:true})) +
+    rail("Deine Lieblingsfilme", movies.filter(m => m.fav), m => card(m), "movies") +
+    rail("Beliebte Serien", shows.slice(0,12), m => card(m), "shows") +
+    rail("Drama", movies.filter(m => hasGenre(m,"Drama")).slice(0,10), m => card(m)) +
+    rail("Krimi-Thriller", movies.filter(m => hasGenre(m,"Crime")), m => card(m)) +
+    rail("Binge-würdige Originals", movies.filter(m => m.Binge), m => card(m, {big:true})) +
+    rail("Reality & Comedy", shows.filter(s => hasGenre(s,"Reality") || hasGenre(s,"Comedy")), m => card(m)) +
+    rail("Sci-Fi & Fantasy", all.filter(m => hasGenre(m,"Sci-Fi") || hasGenre(m,"Fantasy")), m => card(m));
+}
+$("#s-home").addEventListener("scroll", e => $("#homeBar").classList.toggle("solid", e.target.scrollTop > 60), {passive:true});
+
+/* ---------- grid pages ---------- */
+function genreChips(list, el, gridEl){
+  const set = new Set(); list.forEach(m => genres(m).forEach(g => set.add(g)));
+  const gs = ["Alle", ...[...set].sort((a,b) => a.localeCompare(b,"de"))];
+  let cur = "Alle";
+  const draw = () => {
+    el.innerHTML = gs.map(g => `<button class="chip${g===cur?" on":""}" data-g="${esc(g)}">${esc(g)}</button>`).join("");
+    gridEl.innerHTML = (cur==="Alle" ? list : list.filter(m => hasGenre(m, cur))).map(m => card(m)).join("");
+  };
+  el.onclick = e => { const b = e.target.closest("[data-g]"); if(!b) return; cur = b.dataset.g; haptic(); draw(); };
+  draw();
+}
+
+/* ---------- search ---------- */
+function renderSearch(){
+  const q = $("#q").value.trim().toLowerCase();
+  const out = $("#searchOut");
+  if(!q){ out.innerHTML = `<div class="section"><h2>Trends</h2></div><div class="grid">${all.slice(0,15).map(m => card(m)).join("")}</div>`; return; }
+  const res = all.filter(m =>
+    m.title.toLowerCase().includes(q) || (m.genre||"").toLowerCase().includes(q) || (m.director||"").toLowerCase().includes(q) ||
+    (m.tags||[]).some(t => t.toLowerCase().includes(q)) || (m.cast||[]).some(a => a.toLowerCase().includes(q)));
+  out.innerHTML = res.length ? `<div class="count">${res.length} ${res.length===1?"Ergebnis":"Ergebnisse"}</div>` + res.map(m => `
+      <button class="result-row" data-open="${m.key}">
+        <div class="poster">${art(m)}</div>
+        <div class="info"><b>${esc(m.title)}</b>
+          <span>${year(m)} · ${m.kind==="show"?"Serie":dur(m)} · ${esc(m.genre)}</span>
+          ${m.tags?`<div class="tags">${m.tags.slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>`:""}
+        </div>
+      </button>`).join("") :
+    `<div class="empty">${ICON.search}<h3>Keine Treffer</h3>Versuch es mit einem anderen Titel, Genre oder Schauspieler.</div>`;
+}
+$("#q").addEventListener("input", renderSearch);
+
+/* ---------- my space ---------- */
+function renderMe(){
+  $("#helloName").textContent = "Hallo, " + profile + "!";
+  $("#profiles").innerHTML = profiles.map(p => `
+    <button class="prof${p.name===profile?" on":""}" data-prof="${esc(p.name)}">
+      <div class="av">${p.avatar}${p.name===profile?'<span class="check">✓</span>':""}</div><span>${esc(p.name)}</span>
+    </button>`).join("") + `<button class="prof" id="addProf"><div class="av" style="font-size:26px;color:var(--muted)">+</div><span>Neu</span></button>`;
+  const wl = watchlist.map(k => byKey[k]).filter(Boolean);
+  const cont = Object.entries(progress).filter(([k]) => byKey[k]).reverse();
+  $("#meRails").innerHTML =
+    (wl.length ? rail("Merkliste", wl, m => card(m)) :
+      `<div class="section"><h2>Merkliste</h2></div><div class="empty" style="padding:16px 30px">Noch leer. Tippe bei einem Titel auf ＋.</div>`) +
+    rail("Weiterschauen für " + profile, cont, ([k,p]) => wide(byKey[k], p));
+}
+
+/* ---------- detail sheet ---------- */
+let sheetKey = null;
+function openSheet(key){
+  const m = byKey[key]; if(!m) return;
+  sheetKey = key;
+  const similar = all.filter(x => x.key!==key && genres(x).some(g => hasGenre(m,g))).slice(0,12);
+  $("#sheetScroll").innerHTML = `
+    <div class="sheet-hero">${art(m,"h")}</div>
+    <div class="sheet-body">
+      <h2>${esc(m.title)}</h2>
+      <div class="meta"><span class="star">★ ${m.rating ?? "–"}</span><span class="dot">•</span><span>${year(m)}</span><span class="dot">•</span><span>${age(m)}</span><span class="dot">•</span><span>${dur(m)}</span></div>
+      <div class="sheet-actions">
+        <button class="btn-primary" data-play="${key}">${ICON.play}${progress[key] ? "Weiterschauen" : "Jetzt ansehen"}</button>
+        <button class="btn-sq" data-wl="${key}" aria-label="Merkliste">${watchlist.includes(key)?ICON.check:ICON.plus}</button>
+      </div>
+      ${progress[key] ? `<div class="progress" style="position:relative;border-radius:2px;margin:-4px 0 12px"><b style="width:${progress[key]}%"></b></div>` : ""}
+      <p>${esc(m.description || `Eine ${genres(m).join(" & ")}-Serie${m.language?` (${m.language})`:""}, ${m.director?`inszeniert von ${m.director}`:"die du nicht verpassen solltest"}.`)}</p>
+      <div class="kv">Genre: <b>${esc(m.genre)}</b></div>
+      ${m.director ? `<div class="kv">Regie: <b>${esc(m.director)}</b></div>` : ""}
+      ${m.cast ? `<div class="kv">Besetzung: <b>${m.cast.map(esc).join(", ")}</b></div>` : ""}
+      ${m.language ? `<div class="kv">Sprache: <b>${esc(m.language)}</b></div>` : ""}
+      ${m.tags ? `<div class="tags">${m.tags.map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>` : ""}
+    </div>
+    ${rail("Mehr wie das", similar, x => card(x))}`;
+  $("#sheetScroll").scrollTop = 0;
+  $("#sheet").classList.add("on"); $("#backdrop").classList.add("on");
+}
+function closeSheet(){ $("#sheet").classList.remove("on"); $("#backdrop").classList.remove("on"); sheetKey = null; }
+$("#sheetClose").onclick = closeSheet; $("#backdrop").onclick = closeSheet;
+(() => { // nach unten wischen zum Schließen
+  const sh = $("#sheet"), sc = $("#sheetScroll"); let y0 = null, dy = 0;
+  sh.addEventListener("touchstart", e => { if(sc.scrollTop <= 0){ y0 = e.touches[0].clientY; dy = 0; sh.style.transition = "none"; } }, {passive:true});
+  sh.addEventListener("touchmove", e => { if(y0===null) return; dy = Math.max(0, e.touches[0].clientY - y0); if(dy>0) sh.style.transform = `translateY(${dy}px)`; }, {passive:true});
+  sh.addEventListener("touchend", () => { if(y0===null) return; sh.style.transition = ""; sh.style.transform = ""; if(dy > 110) closeSheet(); y0 = null; });
+})();
+
+/* ---------- demo player ---------- */
+let pKey=null, pTimer=null, pPos=0, pLen=0, playing=false;
+const fmt = s => { s=Math.floor(s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0"); };
+function drawPlayer(){
+  $("#pBar").style.width = (pPos/pLen*100)+"%";
+  $("#pCur").textContent = fmt(pPos); $("#pDur").textContent = "-" + fmt(pLen - pPos);
+  $("#pPlay").innerHTML = playing ? ICON.pause : ICON.play;
+  $("#pPlay").setAttribute("aria-label", playing ? "Pause" : "Wiedergabe");
+}
+function openPlayer(key){
+  const m = byKey[key]; if(!m) return;
+  closeSheet(); pKey = key; pLen = (m.duration || 45) * 60;
+  pPos = (progress[key] || 0) / 100 * pLen;
+  $("#pTitle").textContent = m.title;
+  $("#pbg").innerHTML = art(m,"h");
+  $("#player").classList.add("on"); playing = true; drawPlayer();
+  clearInterval(pTimer);
+  pTimer = setInterval(() => { if(!playing) return; pPos = Math.min(pLen, pPos + 30); drawPlayer(); }, 1000);
+}
+function closePlayer(){
+  clearInterval(pTimer); $("#player").classList.remove("on");
+  if(pKey){
+    const pct = Math.round(pPos/pLen*100);
+    delete progress[pKey];
+    if(pct > 1 && pct < 97) progress[pKey] = pct;
+    saveAll(); refresh();
+    island(pct >= 97 ? "Fertig geschaut" : `Bei ${pct} % gespeichert`);
+  }
+  pKey = null;
+}
+$("#pClose").onclick = closePlayer;
+$("#pPlay").onclick = () => { playing = !playing; haptic(); drawPlayer(); };
+$("#pBack").onclick = () => { pPos = Math.max(0, pPos-10); drawPlayer(); };
+$("#pFwd").onclick  = () => { pPos = Math.min(pLen, pPos+10); drawPlayer(); };
+
+/* ---------- Dynamic-Island-Toast ---------- */
+let iT;
+function island(msg, glyph="✓"){
+  const el = $("#island"); el.querySelector(".glyph").textContent = glyph; $("#islandText").textContent = msg;
+  el.classList.add("on"); clearTimeout(iT); iT = setTimeout(() => el.classList.remove("on"), 1900);
+}
+
+/* ---------- navigation ---------- */
+function go(tab){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.dataset.tab===tab));
+  document.querySelectorAll("#tabbar button").forEach(b => b.classList.toggle("on", b.dataset.go===tab));
+  if(tab==="me") renderMe();
+  try{ history.replaceState(null, "", "#"+tab); }catch(e){}
+}
+function refresh(){ renderHome(); renderMe(); if(sheetKey) openSheet(sheetKey); }
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-go],[data-open],[data-play],[data-wl],[data-prof],#addProf,#editProf");
+  if(!t) return;
+  if(t.dataset.go){
+    const cur = document.querySelector(".screen.active");
+    if(t.closest("#tabbar") && cur.dataset.tab === t.dataset.go) cur.scrollTo({top:0, behavior:"smooth"});
+    closeSheet(); go(t.dataset.go); haptic(); return;
+  }
+  if(t.dataset.open){ haptic(); openSheet(t.dataset.open); return; }
+  if(t.dataset.play){ haptic(); openPlayer(t.dataset.play); return; }
+  if(t.dataset.wl){
+    const k = t.dataset.wl; haptic();
+    if(watchlist.includes(k)){ watchlist = watchlist.filter(x => x!==k); island("Von Merkliste entfernt", "−"); }
+    else { watchlist.unshift(k); island("Auf der Merkliste", "+"); }
+    saveAll(); t.innerHTML = watchlist.includes(k) ? ICON.check : ICON.plus;
+    renderHome(); renderMe(); return;
+  }
+  if(t.dataset.prof){ profile = t.dataset.prof; saveAll(); haptic(); refresh(); island("Profil: " + profile, "👤"); return; }
+  if(t.id==="addProf" || t.id==="editProf"){ island("Profilverwaltung folgt", "i"); return; }
+});
+$("#subBtn").onclick = () => island("Abo-Verwaltung folgt", "i");
+$("#clearHist").onclick = () => { progress = {}; saveAll(); refresh(); island("Verlauf gelöscht"); };
+$("#clearList").onclick = () => { watchlist = []; saveAll(); refresh(); island("Merkliste geleert"); };
+$("#installHelp").onclick = () => (window.navigator.standalone || matchMedia("(display-mode: standalone)").matches) ? island("Läuft bereits als App") : island("Safari → Teilen → Zum Home-Bildschirm", "⬆︎");
+
+/* ---------- init ---------- */
+renderHome();
+genreChips(movies, $("#movieChips"), $("#movieGrid"));
+genreChips(shows,  $("#showChips"),  $("#showGrid"));
+renderSearch(); renderMe();
+const start = (location.hash || "").slice(1);
+if(["home","search","movies","shows","me"].includes(start)) go(start);
+
+if("serviceWorker" in navigator && location.protocol==="https:") addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
